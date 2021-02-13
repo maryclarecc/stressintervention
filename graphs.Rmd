@@ -50,7 +50,8 @@ theme = theme(panel.grid.major = element_blank(),
               plot.caption = element_text(color = "gray1", face = "italic", hjust=-.75),
               axis.title.y = element_text(angle=0, vjust = 0.5),
               #axis.text.x = element_text(vjust = grid::unit(c(-2, 0, -2), "points")),
-              text = element_text(size = 18, family = "serif"))
+              text = element_text(size = 28, 
+                                  family = "serif"))
 
 mahal = mahalanobis(masterHighneur[ , -c(1:2)],
                     colMeans(masterHighneur[ , -c(1:2)], na.rm = T),
@@ -156,7 +157,19 @@ msd
                       labels = c("Baseline", "Post-intervention"), 
                       values = c("lightskyblue1", "dodgerblue1"))))
 
-ggsave("barsidebysidesdwnotes.png", scale = 1, width = 10, height = 6, units = c("in"), dpi=2500, limitsize = FALSE)
+#ggsave("mixedfactanovaresized.png", scale = 1, width=500, height = 300, units = "mm", dpi=2500, limitsize = FALSE)
+
+pixels_wide <- 5000
+
+pixels_high <- 3000
+
+
+ggsave("mixedfactanovaresized.png", 
+       plot = highbar,
+       width = pixels_wide/300,
+       height = pixels_high/300,
+       dpi = 300,
+       limitsize = TRUE)
 ```
 
 
@@ -305,7 +318,7 @@ intplot <- interaction.plot(x.factor     = longneur$Neuroticism,
 
 ggplot(data=msd, aes(x=PCSE, y=score, group=group)) + geom_point(aes(color=group)) + geom_line(aes(color=group))  + 
     geom_ribbon(aes(ymin=score-se,ymax=score+se, fill=group),alpha=0.3) + facet_wrap(~Neuroticism) + theme_classic() + theme(text=element_text(size=15)) + labs(title = "Change in Perceived Control over Stressful Event Scores from \n Baseline to Post-Intervention by Neuroticsm Level", x= "PCSE Timepoint", y="PCSE Score \n (Higher =  \n More Perceived \n Control)", color="Intervention Group", fill="Intervention Group") + theme
-ggsave("linesbs.png", scale = 1, width = 10, height = 6, units = c("in"), dpi=1200)
+#ggsave("linesbs.png", scale = 1, width = 10, height = 6, units = c("in"), dpi=1200)
 
 
 #ggplot(msd, aes(group, score, fill=PCSE)) + stat_compare_means(label = "p.signif", method = "t.test",  hide.ns = TRUE, paired=TRUE )+
