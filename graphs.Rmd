@@ -1,0 +1,316 @@
+---
+title: "EPA PCSE graphs"
+author: "MaryClare Colombo"
+date: "12/19/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+require(plyr)
+library(tidyverse)
+library(ggpubr)
+library(extrafont)
+library(ggplot2)
+loadfonts(device = "win")
+library(reshape)
+library(here)
+```
+
+```{r data to long form}
+#setwd("C:/Users/maryc/OneDrive - Seton Hall University/Thesis/Stress Intervention") #working directory outside of project
+stressfull = read.csv("data/stressforneurotonly.csv")
+stressfull %>% filter(NeuroticismR <=21) -> masterHighneur
+write.csv(masterHighneur, file="data/highneursubset.csv")
+stressfull2 = read.csv("data/stressdata.csv")
+stressfull2 %>% filter(NeuroticismR >21) -> masterLowneur
+write.csv(masterLowneur, file="data/lowneursubset.csv")
+##here I am dropping all the other columns I'm not using
+##notice we already have a participant number
+masterHighneur = masterHighneur[ , c(1:2, 12, 14)]
+masterLowneur = masterLowneur[ , c(1:2, 12, 14)]
+##fix those group labels
+masterHighneur$group = factor(masterHighneur$group,
+                      levels = c("1", "2", "3"),
+                      labels = c("Experimental", "Media Control", "Dialogue Control"))
+masterLowneur$group = factor(masterLowneur$group,
+                      levels = c("1", "2", "3"),
+                      labels = c("Experimental", "Media Control", "Dialogue Control"))
+
+
+#view(masterHighneur)
+
+#my_comparisons <- list( c("Experimental", "MediaControl"), c("MediaControl", "DialogueControl"), c("Experimental", "DialogueControl") )
+theme = theme(panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(), 
+              panel.background = element_blank(),
+              axis.line = element_line(colour = "black"), 
+              legend.key = element_rect(fill = "white"),
+              legend.position="bottom",
+              plot.title = element_text(hjust = 0.5),
+              plot.caption = element_text(color = "gray1", face = "italic", hjust=-.75),
+              axis.title.y = element_text(angle=0, vjust = 0.5),
+              #axis.text.x = element_text(vjust = grid::unit(c(-2, 0, -2), "points")),
+              text = element_text(size = 18, family = "serif"))
+
+mahal = mahalanobis(masterHighneur[ , -c(1:2)],
+                    colMeans(masterHighneur[ , -c(1:2)], na.rm = T),
+                    cov(masterHighneur[ , -c(1:2)], use = "pairwise.complete.obs"))
+cutoff = qchisq(1-.0001, ncol(masterHighneur[ , -c(1:2)]))
+cutoff ##cut off score
+ncol(masterHighneur[ , -c(1:2)]) ##df
+summary(mahal < cutoff) ##see how many outliers
+noout = subset(masterHighneur, mahal < cutoff) ##exclude outliers
+longdataHneur = melt(noout,
+                id = c("ï..ID", "group"),
+                measured = c("PCSEbaseline", "PCSEposttest"))
+colnames(longdataHneur) = c("subject", "group", "PCSE", "score")
+longdataHneur$subject = as.factor(longdataHneur$subject)
+##low neur switch
+mahal = mahalanobis(masterLowneur[ , -c(1:2)],
+                    colMeans(masterLowneur[ , -c(1:2)], na.rm = T),
+                    cov(masterLowneur[ , -c(1:2)], use = "pairwise.complete.obs"))
+cutoff = qchisq(1-.0001, ncol(masterLowneur[ , -c(1:2)]))
+cutoff ##cut off score
+ncol(masterLowneur[ , -c(1:2)]) ##df
+summary(mahal < cutoff) ##see how many outliers
+noout = subset(masterLowneur, mahal < cutoff) ##exclude outliers
+longdataLneur = melt(noout,
+                id = c("ï..ID", "group"),
+                measured = c("PCSEbaseline", "PCSEposttest"))
+colnames(longdataLneur) = c("subject", "group", "PCSE", "score")
+longdataLneur$subject = as.factor(longdataLneur$subject)
+
+stressfull = read.csv("data/stressdata.csv")
+#view(stressfull)
+stressfull$group = factor(stressfull$group,
+                      levels = c("1", "2", "3"),
+                      labels = c("Experimental", "Media Control", "Dialogue Control"))
+
+hlneurfull <- read.csv("data/hlneurfull.csv")
+
+str(hlneurfull)
+
+hlneurfull$group = factor(hlneurfull$group,
+                      levels = c("1", "2", "3"),
+                      labels = c("Experimental", "Visuals", "Dialogue"))
+
+hlneur2<- hlneurfull[c(1:4, 7)]
+longhl = melt(hlneur2,
+                id = c("ï..Ã...ID", "group", "groupneur"),
+                measured = c("PCSEbaseline", "PCSEposttest"))
+colnames(longhl) = c("subject", "group", "groupneur", "PCSE", "score")
+longhl$subject = as.factor(longhl$subject)
+#view(longhl)
+#View(hlneurfull)
+longneur = melt(hlneurfull,
+                id = c("ï..Ã...ID", "group", "Neuroticism", "PCSEdiff", "groupneur"),
+                measured = c("PCSEbaseline", "PCSEposttest"))
+colnames(longneur) = c("subject", "group", "Neuroticism", "PCSEdiff","groupneur","PCSE", "score")
+longneur$subject = as.factor(longneur$subject)
+
+longneur$Neuroticism = factor(longneur$Neuroticism,
+                      levels = c("High", "Low"),
+                      labels = c("High Neuroticism", "Low Neuroticism"))
+#View(longneur)
+
+
+data_summary <- function(data, varname, groupnames){
+  summary_func <- function(x, col){
+    c(mean = mean(x[[col]], na.rm=TRUE),
+      sd = sd(x[[col]], na.rm=TRUE))
+  }
+  data_sum<-ddply(data, groupnames, .fun=summary_func,
+                  varname)
+  data_sum <- rename(data_sum, c("mean" = varname))
+ return(data_sum)
+}
+
+(msd<-data_summary(longneur, varname="score", 
+                    groupnames=c("PCSE", "group", "Neuroticism")))
+msd$se <- msd$sd/(sqrt(119))
+msd
+```
+
+
+```{r side by side bar graphs, EPA final}
+
+(highbar <- (ggplot(
+  longneur, aes(group, score, fill=PCSE)) + 
+    ylim(0, 25)+ 
+    theme+ 
+    stat_compare_means(label = "p.signif", method = "t.test",  
+                       hide.ns = TRUE, paired=TRUE, 
+                       show.legend = TRUE, label.y = 23)+ 
+    stat_summary(fun = mean, geom = "bar",position="dodge") + 
+    stat_summary(fun.data = mean_cl_normal, geom = "errorbar", 
+                 position = position_dodge(width = 0.9),
+                 width = 0.25) + 
+    facet_wrap(~Neuroticism) + 
+    labs(
+      x = "Intervention Group", 
+      y='PCSE Score \n \n      (Higher = \n More \n Perceived \n Control)') + 
+    labs(
+      title = "Change in Perceived Control over Stressful Event Scores from \n Baseline to Post-Intervention by Neuroticsm Level", 
+      caption= "     Notes: Error bars indicate standard deviation. * p < .05, ** p < .01 for follow up tests. \n         On the y-axis, higher scores indicate better perceived control for the fictional character.\n   High neuroticism effect sizes (group: η²p = 0.29; time: η²p = 0.12) > low neuroticism effect sizes.") + 
+    scale_fill_manual(name="Timepoint:", 
+                      labels = c("Baseline", "Post-intervention"), 
+                      values = c("lightskyblue1", "dodgerblue1"))))
+
+ggsave("barsidebysidesdwnotes.png", scale = 1, width = 10, height = 6, units = c("in"), dpi=2500, limitsize = FALSE)
+```
+
+
+## Older versions
+```{r violin}
+#my_comparisons <- list( c("Experimental", "Media Control"), c("Media Control", "Dialogue Control"), c("Experimental", "Dialogue Control") )
+
+violin = ggplot(longdataHneur, aes(group, score, fill=PCSE)) + geom_violin(position=position_dodge(1))
+violin +
+  stat_summary(fun.y=mean, geom="point", shape=21, size=2)+
+  stat_compare_means(label = "p.signif", method = "t.test",  hide.ns = TRUE, paired=TRUE )+
+  #stat_summary(fun = mean, geom = "bar",position="dodge") + 
+  #stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.75),width = 0.2) + 
+  theme +
+  xlab(" Intervention Group") +
+  ylab("PCSE Score \n \n (Higher = \n More Perceived \n Control)") + 
+  #stat_summary(fun.data="mean_sdl", mult=1, geom="crossbar", width=0.02 )+
+  #stat_summary(fun.data=mean_sdl, geom="pointrange", color="NA")+
+  ggtitle("Change in Perceived Control over Stressful Event \n Scores from Baseline to Post-Intervention") +
+  scale_fill_manual(name="PCSE Time:", labels = c("Baseline", "Post-intervention"), values = c("goldenrod1", "dodgerblue1"))+ 
+  theme(legend.position="bottom")
+```
+
+```{r boxwhiskers}
+#my_comparisons <- list( c("Experimental", "Media Control"), c("Media Control", "Dialogue Control"), c("Experimental", "Dialogue Control") )
+
+boxwhiskers = ggplot(longdataHneur, aes(group, score, fill=PCSE)) + geom_boxplot(position=position_dodge(1))
+boxwhiskers +
+  stat_summary(fun.y=mean, geom="point", shape=21, size=2)+
+  stat_compare_means(label = "p.signif", method = "t.test",  hide.ns = TRUE, paired=TRUE )+
+  #stat_summary(fun = mean, geom = "bar",position="dodge") + 
+  #stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.75),width = 0.2) + 
+  theme +
+  xlab(" Intervention Group") +
+  ylab("PCSE Score \n \n (Higher = \n More Perceived \n Control)") + 
+  #stat_summary(fun.data="mean_sdl", mult=1, geom="crossbar", width=0.02 )+
+  #stat_summary(fun.data=mean_sdl, geom="pointrange", color="NA")+
+  ggtitle("Change in Perceived Control over Stressful Event \n Scores from Baseline to Post-Intervention") +
+  scale_fill_manual(name="PCSE Time:", labels = c("Baseline", "Post-intervention"), values = c("goldenrod1", "dodgerblue1"))+ 
+  theme(legend.position="bottom")
+```
+
+```{r bargraph}
+
+bargraph = ggplot(longdataHneur, aes(group, score, fill=PCSE))
+bargraph +
+  stat_compare_means(label = "p.signif", method = "t.test",  hide.ns = TRUE, paired=TRUE )+
+  stat_summary(fun = mean, geom = "bar",position="dodge") + 
+  stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.9),width = 0.25) + 
+  theme +
+  xlab(" Intervention Group") +
+  ylab("PCSE Score \n \n (Higher = \n More Perceived \n Control)") + 
+  ggtitle("Change in Perceived Control over Stressful Event \n Scores from Baseline to Post-Intervention") +
+  scale_fill_manual(name="PCSE Time",
+                    labels = c("Baseline", "Post-intervention"),
+                    values = c("lightskyblue1", "dodgerblue1")) 
+```
+
+```{r high vs low unequal}
+
+violin2 = ggplot(stressfull, aes(as.factor(group), PCSEdiff, fill=as.factor(NHL22))) + geom_violin(position=position_dodge(1))
+violin2 +
+  stat_summary(fun.y=mean, geom="point", shape=21, size=2)+
+  stat_compare_means(label = "p.signif", method = "t.test",  hide.ns = TRUE )+
+  #stat_summary(fun = mean, geom = "bar",position="dodge") + 
+  #stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.75),width = 0.2) + 
+  theme +
+  xlab(" Intervention Group") +
+  ylab("PCSE Score \n \n (Positive = \n Increased \n Perceived \n Control)") + 
+  #stat_summary(fun.data="mean_sdl", mult=1, geom="crossbar", width=0.02 )+
+  #stat_summary(fun.data=mean_sdl, geom="pointrange", color="NA")+
+  ggtitle("Change in Perceived Control over Stressful Event \n Scores In High and Low Neuroticism Subsets") +
+  scale_fill_manual(name="Neuroticism Level:", labels = c("High", "Low"), values = c("goldenrod1", "dodgerblue1"))+ 
+  theme(legend.position="bottom")+
+  geom_hline(yintercept=0, linetype="dashed")
+
+```
+
+```{r equal high vs low}
+
+violin2 = ggplot(hlneurfull, aes((group), PCSEdiff, fill=(Neuroticism))) + geom_violin(position=position_dodge(1))
+violin2 +
+  stat_summary(fun.y=mean, geom="point", shape=21, size=2)+
+  stat_compare_means(label = "p.signif", method = "t.test",  hide.ns = TRUE )+
+  #stat_summary(fun = mean, geom = "bar",position="dodge") + 
+  #stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.75),width = 0.2) + 
+  theme +
+  xlab(" Intervention Group") +
+  ylab("PCSE Score \n \n (Positive = \n Increased \n Perceived \n Control)") + 
+  #stat_summary(fun.data="mean_sdl", mult=1, geom="crossbar", width=0.02 )+
+  #stat_summary(fun.data=mean_sdl, geom="pointrange", color="NA")+
+  ggtitle("Change in Perceived Control over Stressful Event \n Scores In High vs Low Neuroticism Subsets") +
+  scale_fill_manual(name="Neuroticism Level:", labels = c("High", "Low"), values = c("goldenrod1", "dodgerblue1"))+ 
+  theme(legend.position="bottom")+
+  geom_hline(yintercept=0, linetype="dashed") 
+```
+
+```{r prelim interaction plots}
+interaction.plot(x.factor     = hlneurfull$group,
+                 trace.factor = hlneurfull$Neuroticism,
+                 response     = hlneurfull$PCSEdiff,
+                 fun = mean,
+                 type="b",
+                 col=c("springgreen2", "dodgerblue1"),  ### Colors for levels of trace var.
+                 pch=c(19, 17, 15),             ### Symbols for levels of trace var.
+                 fixed=TRUE,                    ### Order by factor order in data
+                 leg.bty = "o") 
+
+
+interaction.plot(x.factor     = longhl$PCSE,
+                 trace.factor = longhl$groupneur,
+                 response     = longhl$score,
+                 fun = mean,
+                 type="b",
+                 col=c("blue","grey1",  "green", "grey3", "purple",  "grey5"),
+                 pch=c(19, 17, 15, 13, 11, 9),
+                 fixed=TRUE,            
+                 leg.bty = "o")
+```
+
+```{r side-by-side interaction plots}
+#par(mfrow=c(1,2))
+#View(longneur)
+intplot <- interaction.plot(x.factor     = longneur$Neuroticism,
+                 trace.factor = longneur$group,
+                 response     = longneur$PCSEdiff,
+                 fun = mean,
+                 type="b",
+                 xlab="", #label later
+                 ylab="",
+                 main=" ",
+                 trace.label = "Intervention Group",
+                 legend=TRUE,
+                 col=c("springgreen2", "dodgerblue1", "red2"),  ### Colors for levels of trace var.
+                 pch=c(19, 17, 15),             ### Symbols for levels of trace var.
+                 fixed=TRUE,                    ### Order by factor order in data
+                 leg.bty = "o",
+                 xpd = TRUE)
+#ggsave("interactionplot.png", plot = last_plot(),scale = 1, width = 10, height = 6, units = c("in"), dpi=1200)
+```
+
+
+```{r, ribbon lines}
+
+
+
+ggplot(data=msd, aes(x=PCSE, y=score, group=group)) + geom_point(aes(color=group)) + geom_line(aes(color=group))  + 
+    geom_ribbon(aes(ymin=score-se,ymax=score+se, fill=group),alpha=0.3) + facet_wrap(~Neuroticism) + theme_classic() + theme(text=element_text(size=15)) + labs(title = "Change in Perceived Control over Stressful Event Scores from \n Baseline to Post-Intervention by Neuroticsm Level", x= "PCSE Timepoint", y="PCSE Score \n (Higher =  \n More Perceived \n Control)", color="Intervention Group", fill="Intervention Group") + theme
+ggsave("linesbs.png", scale = 1, width = 10, height = 6, units = c("in"), dpi=1200)
+
+
+#ggplot(msd, aes(group, score, fill=PCSE)) + stat_compare_means(label = "p.signif", method = "t.test",  hide.ns = TRUE, paired=TRUE )+
+  #stat_summary(fun = mean, geom = "bar",position="dodge") + 
+  #stat_summary(fun.data = mean_cl_normal, geom = "errorbar", position = position_dodge(width = 0.9),width = 0.25) + theme + facet_wrap(~Neuroticism) +xlab(" Intervention Group") +  ylab("PCSE Score \n \n (Higher = \n More Perceived \n Control)") +  ggtitle("Change in Perceived Control over Stressful Event Scores from \n Baseline to Post-Intervention by Neuroticsm Level") + scale_fill_manual(name="PCSE Time", labels = c("Baseline", "Post-intervention"), values = c("palegreen2", "dodgerblue1"))+
+#geom_line(aes(linetype=PCSE), size=.6) +geom_errorbar(aes(ymin=score-sd, ymax=score+sd))
+```
+
