@@ -10,7 +10,6 @@ require(plyr)
 library(tidyverse)
 library(ggpubr)
 library(extrafont)
-library(ggplot2)
 loadfonts(device = "win")
 library(reshape)
 library(here)
@@ -164,7 +163,7 @@ pixels_wide <- 5000
 pixels_high <- 3000
 
 
-ggsave("mixedfactanovaresized.png", 
+ggsave("mixedfactanovaresized.jpg", 
        plot = highbar,
        width = pixels_wide/300,
        height = pixels_high/300,
