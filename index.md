@@ -1,4 +1,4 @@
-**Effects of Online Learning Engagement Techniques for a College Stress Reduction Module**
+**Study Overview: Effects of Online Learning Engagement Techniques for a College Stress Reduction Module**
 
 MaryClare C. Colombo & Paige H. Fisher, Seton Hall University
 
