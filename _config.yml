@@ -1,1 +1,6 @@
-theme: jekyll-theme-midnight
+theme: jekyll-theme-so-simple
+# remote_theme: mmistakes/so-simple-theme
+locale: en-US
+title: "Effects of Online Learning Engagement Techniques for a College Stress Reduction Module"
+description: "A GitHub site for my master's applied research project"
+baseurl: /stressintervention
