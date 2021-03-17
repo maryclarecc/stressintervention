@@ -1,4 +1,4 @@
-# Pilot Study Overview: Effects of Online Learning Engagement Techniques for a College Stress Reduction Module
+# Pilot Study Overview
 
 ## MaryClare C. Colombo & Paige H. Fisher, Seton Hall University
 
